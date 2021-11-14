@@ -1,10 +1,10 @@
 const path = require('path')
+const glob = require('glob')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
-const glob = require('glob')
-
+const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin')
 // 动态的设置entry和html-webpack-plugin
 const setMAP = () => {
   const entry = {};
@@ -12,43 +12,39 @@ const setMAP = () => {
   // 获取各个页面的入口文件路径
   const entryFiles = glob.sync(path.resolve(__dirname, './src/*/index.js'));
   Object.keys(entryFiles).map((index) => {
-      const entryFile = entryFiles[index];
-      // 正则匹配pageName(即/Users/tal/Desktop/my-project/src/index/index.js，src和index.js之间的值)
-      const match = entryFile.match(/src\/(.*)\/index\.js/);
-      const pageName = match && match[1];
-      entry[pageName] = entryFile;
-      HtmlWebpackPlugins.push(
-          new HtmlWebpackPlugin({
-              // 本地模板文件的位置，支持加载器(如handlebars、ejs、undersore、html等)
-              template: path.resolve(__dirname, `src/${pageName}/index.html`),
-              // 输出文件的文件名称，默认为index.html，不配置就是该文件名；此外，还可以为输出文件指定目录位置（例如'pages/index.html'）
-              filename: `${pageName}.html`,
-              // 提取的基础包名字可以不写
-              chunks: ['vendors', pageName],
-              inject: true,
-              minify: {
-                  html5: true,
-                  collapseWhitespace: true,
-                  preserveLineBreaks: false,
-                  minifyCSS: true,
-                  minifyJS: true,
-                  removeComments: false,
-              },
-          }),
-      );
+    const entryFile = entryFiles[index];
+    // 正则匹配pageName(即/Users/tal/Desktop/my-project/src/index/index.js，src和index.js之间的值)
+    const match = entryFile.match(/src\/(.*)\/index\.js/);
+    const pageName = match && match[1];
+    entry[pageName] = entryFile;
+    HtmlWebpackPlugins.push(
+      new HtmlWebpackPlugin({
+        // 本地模板文件的位置，支持加载器(如handlebars、ejs、undersore、html等)
+        template: path.resolve(__dirname, `src/${pageName}/index.html`),
+        // 输出文件的文件名称，默认为index.html，不配置就是该文件名；此外，还可以为输出文件指定目录位置（例如'pages/index.html'）
+        filename: `${pageName}.html`,
+        // 提取的基础包名字可以不写
+        chunks: ['vendors', pageName],
+        inject: true,
+        minify: {
+          html5: true,
+          collapseWhitespace: true,
+          preserveLineBreaks: false,
+          minifyCSS: true,
+          minifyJS: true,
+          removeComments: false,
+        },
+      }),
+    );
   });
   return {
-      entry,
-      HtmlWebpackPlugins,
+    entry,
+    HtmlWebpackPlugins,
   };
 };
-const { entry, HtmlWebpackPlugins }  = setMAP()
+const { entry, HtmlWebpackPlugins } = setMAP()
 
 module.exports = {
-  // entry: {
-  //   index: './src/index.js',
-  //   search: './src/search.js'
-  // },
   entry,
   output: {
     path: path.resolve(__dirname, 'dist'), // 打包输出的地址，绝对路径
@@ -125,35 +121,6 @@ module.exports = {
     ]
   },
   plugins: [
-    // // 将打包出来的bundle文件自动引入到html文件中去
-    // new HtmlWebpackPlugin({
-    //   template: path.join(__dirname, 'src/index.html'), // 指定htm模版
-    //   filename: 'index.html', // 自定义打包的文件名
-    //   chunks: ['index'], // 只引入index chunk
-    //   inject: true,
-    //   minify: {
-    //     html5: true,
-    //     collapseWhitespace: true,
-    //     preserveLineBreaks: false,
-    //     minifyCSS: true,
-    //     minifyJS: true,
-    //     removeComments: false
-    //   }
-    // }),
-    // new HtmlWebpackPlugin({
-    //   template: path.join(__dirname, 'src/search.html'),
-    //   filename: 'search.html',
-    //   chunks: ['search'], // 只引入search chunk
-    //   inject: true,
-    //   minify: {
-    //     html5: true,
-    //     collapseWhitespace: true,
-    //     preserveLineBreaks: false,
-    //     minifyCSS: true,
-    //     minifyJS: true,
-    //     removeComments: false
-    //   }
-    // }),
     // 清空打包dist下的所有文件
     new CleanWebpackPlugin(),
     // 提取css文件为单独文件
@@ -164,6 +131,35 @@ module.exports = {
     new OptimizeCSSAssetsPlugin({
       assetNameRegExp: /\.css$/g,
       cssProcessor: require('cssnano')
-    })
-  ].concat(HtmlWebpackPlugins)
+    }),
+    // new HtmlWebpackExternalsPlugin({
+    //   externals: [
+    //     {
+    //       module: 'react',
+    //       entry: {
+    //         path: 'https://unpkg.com/react@16/umd/react.production.min.js',
+    //       },
+    //       global: 'React',
+    //     },
+    //     {
+    //       module: 'react-dom',
+    //       entry: {
+    //         path: 'https://unpkg.com/react-dom@16/umd/react-dom.production.min.js',
+    //       },
+    //       global: 'ReactDOM',
+    //     },
+    //   ],
+    // })
+  ].concat(HtmlWebpackPlugins),
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        commons: {
+          test: /(react|react-dom)/, //匹配出需要分离的包
+          name: 'vendors',
+          chunks: 'all', //async异步引⼊的库进⾏分离(默认)
+        }
+      }
+    }
+  }
 }
