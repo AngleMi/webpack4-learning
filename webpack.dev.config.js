@@ -97,11 +97,13 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin(),
+    new FriendlyErrorsWebpackPlugin()
   ].concat(HtmlWebpackPlugins),
   devServer: {
     contentBase: './dist',
     hot: true,
-    // open: true
+    // open: true,
+    stats: 'errors-only'
   },
   devtool: 'source-map'
 }

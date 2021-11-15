@@ -5,6 +5,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin')
 const HtmlWebpackExternalsPlugin = require('html-webpack-externals-plugin')
+const FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin')
+
 // 动态的设置entry和html-webpack-plugin
 const setMAP = () => {
   const entry = {};
@@ -132,6 +134,7 @@ module.exports = {
       assetNameRegExp: /\.css$/g,
       cssProcessor: require('cssnano')
     }),
+    new FriendlyErrorsWebpackPlugin(),
     // new HtmlWebpackExternalsPlugin({
     //   externals: [
     //     {
@@ -150,6 +153,14 @@ module.exports = {
     //     },
     //   ],
     // })
+    // 主动捕获并处理构建错误
+    function () {
+      this.hooks.done.tap('done', (stats) => {
+        if ((stats.compilation.errors && stats.compilation.errors.length && process.argv.indexOf('--watch') == -1)) {
+          console.log('builderror'); process.exit(1);
+        }
+      })
+    }
   ].concat(HtmlWebpackPlugins),
   optimization: {
     splitChunks: {
@@ -161,5 +172,6 @@ module.exports = {
         }
       }
     }
-  }
+  },
+  stats: 'errors-only'
 }
